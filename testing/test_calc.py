@@ -31,9 +31,10 @@ class TestCalc:
     def test_add(self, a, b, result):
         assert result == self.cal.add(a, b)
 
+
     """ 除法 """
 
-    @pytest.mark.div
+    @pytest.mark.dependency(depends=['test_multiple'])
     @pytest.mark.parametrize('a, b, result', [
         (1, 1, 1),
         (0.1, 0.1, 1),
@@ -52,7 +53,7 @@ class TestCalc:
 
     """ 减法 """
 
-    @pytest.mark.minus
+    @pytest.mark.dependency(depends=['test_add'])
     @pytest.mark.parametrize('a, b, result', [
         (1, 1, 0),
         (0.1, 0.1, 0),

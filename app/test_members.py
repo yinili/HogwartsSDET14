@@ -17,12 +17,18 @@
 """
 import time
 
+import yaml
 from appium import webdriver
 from appium.webdriver.common.mobileby import MobileBy
 import pytest
 
 
 class TestMembers:
+    with open("datas/datas.yml") as f:
+        testdatas = yaml.safe_load(f)
+
+    with open("datas/deldatas.yml") as f:
+        deldatas = yaml.safe_load(f)
 
     def setup(self):
         caps = {}
@@ -43,7 +49,8 @@ class TestMembers:
         self.driver.implicitly_wait(15)
 
     # 添加成员功能
-    def test_addmembers(self):
+    @pytest.mark.parametrize('name, gender, phone', testdatas)
+    def test_addmembers(self, name, gender, phone):
         name = "霍格沃兹_1"
         # 步骤1：点击"通讯录"
         self.driver.find_element(MobileBy.XPATH, "//*[@text='通讯录']").click()
@@ -59,12 +66,17 @@ class TestMembers:
         # 步骤3：点击"手动输入添加"
         self.driver.find_element(MobileBy.XPATH, "//*[@text='手动输入添加']").click()
         # 步骤4：输入"姓名"
-        self.driver.find_element(MobileBy.XPATH, "//*[@text='必填']").send_keys("霍格沃兹_1")
-        # 步骤5：选择性别
+        self.driver.find_element(MobileBy.XPATH, "//*[@text='必填']").send_keys(name)
+
+        # 步骤5 选择性别
         self.driver.find_element(MobileBy.ID, "e3m").click()
-        self.driver.find_element(MobileBy.XPATH, "//*[@text='男']").click()
+        if gender == '男':
+            self.driver.find_element(MobileBy.XPATH, "//*[@text='男']").click()
+        else:
+            self.driver.find_element(MobileBy.XPATH, "//*[@text='女']").click()
         # 步骤6：输入手机号或者邮箱
-        self.driver.find_element(MobileBy.XPATH, "//*[@text='手机号']").send_keys("13000000001")
+        self.driver.find_element(MobileBy.XPATH, "//*[@text='手机号']").send_keys(phone)
+
         # 步骤7：点击"保存"
         self.driver.find_element(MobileBy.XPATH, "//*[@text='保存']").click()
         # 步骤8：验证toast提示"添加成功"
@@ -72,12 +84,22 @@ class TestMembers:
         assert "添加成功" in result
 
     # 删除成员功能
-    def test_delmembers(self):
+    @pytest.mark.parametrize('name', deldatas)
+    def test_delmembers(self, name):
         # 步骤1：点击"通讯录"
         self.driver.find_element(MobileBy.XPATH, "//*[@text='通讯录']").click()
-        # 步骤2：点击要删除的成员姓名
-        self.driver.find_element(MobileBy.XPATH, "//*[@text='霍格沃兹_1']").click()
-        # 步骤3：点击右上角"..."
+        # 步骤2：点击搜索
+        self.driver.find_element(MobileBy.ID, "h9z").click()
+        # 步骤3：搜索要删除的成员
+        self.driver.find_element(MobileBy.XPATH, "//*[@text='搜索']").send_keys(name)
+
+        elelist = self.driver.find_element(MobileBy.XPATH, f"//*[@text='{name}']")
+
+        if len(elelist) < 2:
+            print('没有这个联系人')
+            return
+        elelist[1].click()
+
         self.driver.find_element(MobileBy.ID, "h9p").click()
         # 步骤4：点击"编辑成员"
         self.driver.find_element(MobileBy.XPATH, "//*[@text='编辑成员']").click()
@@ -92,10 +114,11 @@ class TestMembers:
                                           'text("删除成员").instance(0));').click()
         # 步骤6：点击toast中的确定
         self.driver.find_element(MobileBy.XPATH, "//*[@text='确定']").click()
+        time.sleep(5)
 
         # 步骤7：验证删除成功
-        result = self.driver.find_element(MobileBy.ID, "b2z").text
-        assert "霍格沃兹_1" not in result
+        elelist_after = self.driver.find_element(MobileBy.XPATH, f"//*[@text='{name}']")
+        assert len(elelist) - len(elelist_after) == 1
 
     def teardown(self):
         self.driver.quit()
